@@ -143,4 +143,4 @@ This project is a fullstack application that integrates with HubSpot's private a
 ---
 
 ## Demo Video
-[View Demo](https://drive.google.com/file/d/15slA1NUJmHMTca3h0-ovMPgxvrY7iChc/view?usp=sharing)
+[View Demo](https://drive.google.com/file/d/1InfHBorwjohL9X9S9XMdQ6prj2hERH1y/view?usp=sharing)
