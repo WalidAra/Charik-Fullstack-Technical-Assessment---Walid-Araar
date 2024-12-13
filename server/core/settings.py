@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',  # Add corsheaders here
+    'association'
 ]
 
 MIDDLEWARE = [
@@ -136,3 +137,14 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'charik-test',
+        'USER': 'walid',
+        'PASSWORD': 'walid123',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    }
+}

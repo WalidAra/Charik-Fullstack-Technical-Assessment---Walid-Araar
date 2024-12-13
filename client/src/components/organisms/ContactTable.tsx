@@ -23,6 +23,12 @@ import LinkButton from "../atoms/LinkButton";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { LuLoader } from "react-icons/lu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Type definitions
 type ContactProperties = {
@@ -50,6 +56,15 @@ type ContactsResponse = {
   contacts: Contact[];
 };
 
+type Association = {
+  email: string;
+  deal_id: string;
+};
+
+type AssociationsResponse = {
+  associations: Association[];
+};
+
 // Fetch contacts function
 const fetchContacts = async (token: string): Promise<Contact[]> => {
   const response = await axios.get<ContactsResponse>(
@@ -64,8 +79,16 @@ const fetchContacts = async (token: string): Promise<Contact[]> => {
   return response.data.contacts;
 };
 
+// Fetch associations function
+const fetchAssociations = async (): Promise<Association[]> => {
+  const response = await axios.get<AssociationsResponse>(
+    "http://127.0.0.1:4040/association/all/"
+  );
+  return response.data.associations;
+};
+
 const ContactTable = () => {
-  const { email, deal_id, setContactDeal } = useContactDealStore();
+  const { association, setContactDeal } = useContactDealStore();
   const { token } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -82,6 +105,17 @@ const ContactTable = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  // React Query to fetch associations
+  const {
+    data: associations = [],
+    isLoading: isAssociationsLoading,
+    error: associationsError,
+  } = useQuery<Association[]>({
+    queryKey: ["associations"],
+    queryFn: fetchAssociations,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
   // Filtering contacts
   const filteredContacts = contacts.filter((contact) =>
     [
@@ -93,11 +127,11 @@ const ContactTable = () => {
 
   // Contact selection handler
   const onSelect = (contactEmail: string) => {
-    setContactDeal(contactEmail, deal_id);
+    setContactDeal({ email: contactEmail });
   };
 
   // Loading state
-  if (isLoading) {
+  if (isLoading || isAssociationsLoading) {
     return (
       <Card className="flex items-center justify-center h-[500px]">
         <LuLoader className="size-10 animate-spin text-primary" />
@@ -110,6 +144,14 @@ const ContactTable = () => {
     return (
       <Card className="flex items-center justify-center h-[500px] text-destructive">
         Failed to load contacts. Please try again later.
+      </Card>
+    );
+  }
+
+  if (associationsError) {
+    return (
+      <Card className="flex items-center justify-center h-[500px] text-destructive">
+        Failed to load associations. Please try again later.
       </Card>
     );
   }
@@ -163,32 +205,71 @@ const ContactTable = () => {
               <TableHead>Company</TableHead>
               <TableHead>Website</TableHead>
               <TableHead>Lifecycle Stage</TableHead>
+              <TableHead>Association</TableHead> {/* New Column */}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredContacts.map((contact) => (
-              <TableRow
-                className={cn(
-                  "cursor-pointer ",
-                  email === contact.properties.email &&
-                    "bg-secondary border border-dashed "
-                )}
-                onClick={() => onSelect(contact.properties.email)}
-                key={contact.id}
-              >
-                <TableCell className="font-medium">
-                  {contact.properties.email}
-                </TableCell>
-                <TableCell>{contact.properties.firstname}</TableCell>
-                <TableCell>{contact.properties.lastname}</TableCell>
-                <TableCell>{contact.properties.phone || "N/A"}</TableCell>
-                <TableCell>{contact.properties.company || "N/A"}</TableCell>
-                <TableCell>{contact.properties.website || "N/A"}</TableCell>
-                <TableCell>
-                  {contact.properties.lifecyclestage || "N/A"}
-                </TableCell>
-              </TableRow>
-            ))}
+            {filteredContacts.map((contact) => {
+              const associated = associations.find(
+                (assoc) => assoc.email === contact.properties.email
+              );
+
+              return (
+                <TableRow
+                  className={cn(
+                    "cursor-pointer ",
+                    association.email === contact.properties.email &&
+                      "bg-secondary border border-dashed "
+                  )}
+                  onClick={() => onSelect(contact.properties.email)}
+                  key={contact.id}
+                >
+                  <TableCell className="font-medium">
+                    {contact.properties.email}
+                  </TableCell>
+                  <TableCell>{contact.properties.firstname}</TableCell>
+                  <TableCell>{contact.properties.lastname}</TableCell>
+                  <TableCell>{contact.properties.phone || "N/A"}</TableCell>
+                  <TableCell>{contact.properties.company || "N/A"}</TableCell>
+                  <TableCell>{contact.properties.website || "N/A"}</TableCell>
+                  <TableCell>
+                    {contact.properties.lifecyclestage || "N/A"}
+                  </TableCell>
+                  <TableCell>
+                    {!associated ? (
+                      <span>No Association</span>
+                    ) : (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger>
+                          <Button
+                            size={"sm"}
+                            className={"flex items-center gap-2 border-dashed"}
+                            variant={"outline"}
+                          >
+                            <span>View</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          {associations.map((assoc) => {
+
+                            if(assoc.email !== contact.properties.email) {
+                              return null;
+
+                            }
+
+                            return (
+                              <DropdownMenuItem key={assoc.deal_id}>
+                                {assoc.deal_id}
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent>

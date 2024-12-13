@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,7 +23,7 @@ import LinkButton from "../atoms/LinkButton";
 
 const DealTable = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const { deal_id, setContactDeal, email } = useContactDealStore();
+  const { association, setContactDeal } = useContactDealStore();
 
   interface Deal {
     id: string;
@@ -69,14 +69,9 @@ const DealTable = () => {
     item.id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const onSelect = useCallback(
-    (id: string) => {
-      console.log("id", id);
-
-      setContactDeal(email, id);
-    },
-    [email, setContactDeal]
-  );
+  const onSelect = (id: string) => {
+    setContactDeal({ deal_id: id });
+  };
 
   return (
     <Card className="shadow-none size-full">
@@ -135,7 +130,8 @@ const DealTable = () => {
                   onClick={() => onSelect(item.id)}
                   className={cn(
                     "cursor-pointer",
-                    deal_id === item.id && "bg-secondary border border-dashed "
+                    association.deal_id === item.id &&
+                      "bg-secondary border border-dashed "
                   )}
                   key={index}
                 >

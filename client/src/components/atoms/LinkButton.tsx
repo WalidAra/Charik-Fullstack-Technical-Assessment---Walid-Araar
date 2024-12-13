@@ -1,16 +1,60 @@
-import React, { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React from "react";
 import { Button } from "../ui/button";
 import { LuLoader } from "react-icons/lu";
 import useContactDealStore from "@/store/contacts-deals";
 import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import axios, { AxiosError } from "axios";
+
+// Define the expected response type from the API
+interface CreateInteractionResponse {
+  success: boolean;
+  message: string;
+}
+
+// Define the payload type
+interface CreateInteractionPayload {
+  deal_id: string;
+  email: string;
+}
 
 const LinkButton = ({ children }: { children: React.ReactNode }) => {
-  const { deal_id, email } = useContactDealStore();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { association } = useContactDealStore();
   const { toast } = useToast();
 
-  const fetchData = async () => {
-    if (!deal_id && !email) {
+  // Define the mutation for creating the interaction
+  const createInteraction = useMutation<
+    CreateInteractionResponse,
+    AxiosError,
+    CreateInteractionPayload
+  >({
+    mutationFn: async (payload) => {
+      const { data } = await axios.post<CreateInteractionResponse>(
+        "http://127.0.0.1:4040/association/create/",
+        payload
+      );
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Interaction created",
+        description: `Deal ${association.deal_id} is linked to ${association.email}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Something went wrong",
+      });
+    },
+  });
+
+  const handleClick = () => {
+    const { deal_id, email } = association;
+    console.log("deal , email :", deal_id, email);
+
+    if (!deal_id || !email) {
       toast({
         title: "Error",
         description: "Please fill in the form",
@@ -18,36 +62,12 @@ const LinkButton = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    setIsLoading(true);
-
-    const response = await fetch(
-      "http://127.0.0.1:4040/api/private/link/interactions/",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          deal_id,
-          email,
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (data) {
-      toast({
-        title: `Interaction created`,
-        description: `Deal ${deal_id} is linked to ${email}`,
-      });
-    }
-    setIsLoading(false);
+    createInteraction.mutate({ deal_id, email });
   };
 
   return (
-    <Button onClick={fetchData} className="flex items-center gap-2">
-      {isLoading ? (
+    <Button onClick={handleClick} className="flex items-center gap-2">
+      {createInteraction.isPending ? (
         <span className="animate-spin">
           <LuLoader />
         </span>
